@@ -209,6 +209,7 @@
 		}
 
 		function getFullscreenUrl(site) {
+			if (site.directFs) return site.url;
 			return YOUTUBE_REDIRECT + site.url;
 		}
 
