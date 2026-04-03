@@ -1,0 +1,49 @@
+@charset "UTF-8";
+
+/* 全体 */
+body
+{
+	color: gray;
+	background-color: black;
+}
+
+/* 見出し1 */
+h1
+{
+	font-size: 20pt;
+	padding: 1pt 3pt;
+	margin: 4pt 0 16pt 0;
+}
+
+/* 見出し2 */
+h2
+{
+	color: black;
+	background-color: #406070;
+	font-size: 20pt;
+	padding: 1pt 12pt;
+	margin: 6pt 0 3pt 0;
+}
+
+ol, ul
+{
+	font-size: 18pt;
+	margin: 4pt 4pt 2pt 8pt;
+}
+
+ol li
+{
+	margin: 2pt 0 1pt 0;
+}
+
+/* リンク (訪問済みでもそうでなくても同じにする) */
+a:link, a:visited
+{
+	color: #2266AA;
+}
+
+/* アイコン画像 */
+img.icon_small
+{
+	height: 18pt;
+}

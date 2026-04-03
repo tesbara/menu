@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+	<meta charset="UTF-8">
+	<title>テスラ リンク集</title>
+	<link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+	<style>
+	* { box-sizing: border-box; margin: 0; padding: 0; }
+	body {
+		background: #000000;
+		color: #cccccc;
+		font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+		font-size: 20pt;
+		min-height: 100vh;
+		padding: 12pt 16pt;
+	}
+
+	/* ---- 検索バー + 設定ボタン ---- */
+	.toolbar {
+		display: flex;
+		align-items: center;
+		gap: 8pt;
+		margin-bottom: 12pt;
+	}
+	.toolbar form {
+		display: flex;
+		flex: 1;
+		gap: 8pt;
+	}
+	.toolbar input {
+		flex: 1;
+		font-size: 16pt;
+		padding: 10pt 20pt;
+		border: 1px solid #444444;
+		border-radius: 24pt;
+		background: #000000;
+		color: #ffffff;
+		outline: none;
+	}
+	.toolbar input:focus { border-color: #336688; }
+	.toolbar button {
+		font-size: 16pt;
+		padding: 10pt 24pt;
+		border: 1px solid #444444;
+		border-radius: 24pt;
+		background: #000000;
+		color: #8899bb;
+		cursor: pointer;
+		white-space: nowrap;
+		transition: border-color 0.2s;
+	}
+	.toolbar button:active { border-color: #446688; }
+	#settingsBtn { color: #6688aa; }
+	#settingsBtn.active { border-color: #3366aa; color: #88bbee; }
+
+	/* ---- 設定バー ---- */
+	.settings-bar {
+		display: none;
+		background: #000000;
+		border: 1px solid #1a2a3a;
+		border-radius: 10pt;
+		padding: 10pt 14pt;
+		margin-bottom: 12pt;
+	}
+	.settings-bar.visible { display: flex; align-items: center; gap: 10pt; flex-wrap: wrap; }
+	.settings-bar span { font-size: 12pt; color: #778899; }
+	.settings-bar button {
+		font-size: 12pt;
+		padding: 6pt 16pt;
+		border: none;
+		border-radius: 16pt;
+		cursor: pointer;
+	}
+	#doneBtn { background: #1a3350; color: #88bbdd; }
+	#doneBtn:active { background: #254060; }
+
+	/* ---- セクション見出し ---- */
+	h2 {
+		font-size: 20pt;
+		font-weight: 500;
+		color: #556680;
+		letter-spacing: 0.5pt;
+		padding: 18pt 0 8pt 8pt;
+		border-left: 3pt solid #336688;
+		margin-bottom: 10pt;
+	}
+
+	/* ---- グリッド ---- */
+	.grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(150pt, 1fr));
+		gap: 8pt;
+	}
+
+	/* ---- カード ---- */
+	.card {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		text-decoration: none;
+		color: #dddddd;
+		padding: 14pt 8pt 10pt 8pt;
+		border-radius: 10pt;
+		border: 1px solid #444444;
+		background: linear-gradient(180deg, #000000 0%, #0a0f14 100%);
+		transition: border-color 0.2s, background 0.2s;
+	}
+	.card:active { border-color: #336688; background: linear-gradient(180deg, #0a1520 0%, #121a22 100%); }
+	.card img {
+		object-fit: contain;
+		width: 120pt;
+		height: 50pt;
+		margin-bottom: 8pt;
+		mix-blend-mode: screen;
+	}
+	.card .name {
+		font-size: 12pt;
+		text-align: center;
+		color: #667788;
+		line-height: 1.3;
+	}
+
+	/* 設定モード: カテゴリ内の既お気に入り */
+	.card.already-fav {
+		opacity: 0.3;
+	}
+
+	/* 設定モード: バッジ */
+	.badge {
+		position: absolute;
+		top: 5pt;
+		right: 7pt;
+		width: 18pt;
+		height: 18pt;
+		line-height: 18pt;
+		text-align: center;
+		border-radius: 50%;
+		font-size: 12pt;
+		font-weight: bold;
+		pointer-events: none;
+	}
+	.badge-add {
+		background: #0a2a0a;
+		color: #44aa44;
+		border: 1px solid #1a3a1a;
+	}
+	.badge-added {
+		background: #0a1a2a;
+		color: #4488aa;
+		border: 1px solid #1a2a3a;
+	}
+	.badge-remove {
+		background: #2a0a0a;
+		color: #aa4444;
+		border: 1px solid #3a1a1a;
+	}
+	</style>
+</head>
+<body>
+
+	<div class="toolbar">
+		<form method="get" action="https://www.google.com/search">
+			<input name="q" placeholder="検索キーワード" value="">
+			<button type="submit">検索</button>
+		</form>
+		<button id="settingsBtn" type="button">設定</button>
+	</div>
+
+	<div id="settingsBar" class="settings-bar">
+		<span>カテゴリのカードをタップ → よく使うサイトに追加 / よく使うサイトのカードをタップ → 削除</span>
+		<button id="doneBtn" type="button">完了</button>
+	</div>
+
+	<div id="content"></div>
+
+	<script src="sites.js"></script>
+	<script>
+	(function() {
+		var YOUTUBE_REDIRECT = 'https://www.youtube.com/redirect?q=';
+		var STORAGE_KEY = 'teslaindex_favorites';
+		var CATEGORIES = [
+			{ id: 'video',  name: '動画' },
+			{ id: 'google', name: 'Google' },
+			{ id: 'tesla',  name: 'Tesla' },
+			{ id: 'other',  name: 'その他' }
+		];
+
+		var settingsMode = false;
+		var siteMap = {};
+		for (var i = 0; i < SITES.length; i++) {
+			siteMap[SITES[i].id] = SITES[i];
+		}
+
+		function getSite(id) { return siteMap[id] || null; }
+
+		function getFavorites() {
+			try {
+				var data = localStorage.getItem(STORAGE_KEY);
+				return data ? JSON.parse(data) : { fs: [], normal: [] };
+			} catch(e) {
+				return { fs: [], normal: [] };
+			}
+		}
+
+		function saveFavorites(favs) {
+			try { localStorage.setItem(STORAGE_KEY, JSON.stringify(favs)); } catch(e) {}
+		}
+
+		function getFullscreenUrl(site) {
+			return YOUTUBE_REDIRECT + site.url;
+		}
+
+		function escapeHtml(str) {
+			return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+		}
+
+		function renderCard(site, isFullscreen, sectionType, favs) {
+			var url = isFullscreen ? getFullscreenUrl(site) : site.url;
+			var dataType;
+			if (sectionType === 'fav') {
+				dataType = isFullscreen ? 'fav-fs' : 'fav-normal';
+			} else {
+				dataType = isFullscreen ? 'cat-fs' : 'cat-normal';
+			}
+
+			var favList = isFullscreen ? favs.fs : favs.normal;
+			var isFav = favList.indexOf(site.id) >= 0;
+
+			var classes = 'card';
+			if (settingsMode && sectionType === 'cat' && isFav) classes += ' already-fav';
+
+			var badge = '';
+			if (settingsMode) {
+				if (sectionType === 'fav') {
+					badge = '<span class="badge badge-remove">&times;</span>';
+				} else if (isFav) {
+					badge = '<span class="badge badge-added">&#10003;</span>';
+				} else {
+					badge = '<span class="badge badge-add">+</span>';
+				}
+			}
+
+			return '<a class="' + classes + '" href="' + escapeHtml(url) + '" data-id="' + site.id + '" data-type="' + dataType + '">' +
+				badge +
+				'<img alt="' + escapeHtml(site.name) + '" src="' + escapeHtml(site.icon) + '">' +
+				'<span class="name">' + escapeHtml(site.name) + '</span>' +
+				'</a>';
+		}
+
+		// カテゴリ別にサイトをグルーピング (初期化時に1回だけ実行)
+		var categoryItems = {};
+		for (var i = 0; i < SITES.length; i++) {
+			var s = SITES[i];
+			if (!categoryItems[s.category]) categoryItems[s.category] = [];
+			categoryItems[s.category].push(s);
+		}
+
+		function render() {
+			var favs = getFavorites();
+			var html = '';
+
+			// よく使うサイト (全画面)
+			var favFsSites = [];
+			for (var i = 0; i < favs.fs.length; i++) {
+				var site = getSite(favs.fs[i]);
+				if (site && site.fs[0] === '1') favFsSites.push(site);
+			}
+			if (favFsSites.length > 0) {
+				html += '<h2>よく使うサイト (全画面)</h2><div class="grid">';
+				for (var i = 0; i < favFsSites.length; i++) {
+					html += renderCard(favFsSites[i], true, 'fav', favs);
+				}
+				html += '</div>';
+			}
+
+			// よく使うサイト (通常)
+			var favNormalSites = [];
+			for (var i = 0; i < favs.normal.length; i++) {
+				var site = getSite(favs.normal[i]);
+				if (site && site.fs[1] === '1') favNormalSites.push(site);
+			}
+			if (favNormalSites.length > 0) {
+				html += '<h2>よく使うサイト (通常)</h2><div class="grid">';
+				for (var i = 0; i < favNormalSites.length; i++) {
+					html += renderCard(favNormalSites[i], false, 'fav', favs);
+				}
+				html += '</div>';
+			}
+
+			// 各カテゴリ
+			for (var c = 0; c < CATEGORIES.length; c++) {
+				var cat = CATEGORIES[c];
+				var items = categoryItems[cat.id] || [];
+
+				// 全画面
+				var fsItems = [];
+				for (var i = 0; i < items.length; i++) {
+					if (items[i].fs[0] === '1') fsItems.push(items[i]);
+				}
+				if (fsItems.length > 0) {
+					html += '<h2>' + escapeHtml(cat.name) + ' (全画面)</h2><div class="grid">';
+					for (var i = 0; i < fsItems.length; i++) {
+						html += renderCard(fsItems[i], true, 'cat', favs);
+					}
+					html += '</div>';
+				}
+
+				// 通常
+				var normalItems = [];
+				for (var i = 0; i < items.length; i++) {
+					if (items[i].fs[1] === '1') normalItems.push(items[i]);
+				}
+				if (normalItems.length > 0) {
+					html += '<h2>' + escapeHtml(cat.name) + ' (通常)</h2><div class="grid">';
+					for (var i = 0; i < normalItems.length; i++) {
+						html += renderCard(normalItems[i], false, 'cat', favs);
+					}
+					html += '</div>';
+				}
+			}
+
+			document.getElementById('content').innerHTML = html;
+		}
+
+		function addFavorite(id, type) {
+			var favs = getFavorites();
+			var list = (type === 'fs') ? favs.fs : favs.normal;
+			if (list.indexOf(id) < 0) {
+				list.push(id);
+				saveFavorites(favs);
+			}
+		}
+
+		function removeFavorite(id, type) {
+			var favs = getFavorites();
+			var list = (type === 'fs') ? favs.fs : favs.normal;
+			var idx = list.indexOf(id);
+			if (idx >= 0) {
+				list.splice(idx, 1);
+				saveFavorites(favs);
+			}
+		}
+
+		// イベント: カードクリック (イベント委譲)
+		document.getElementById('content').addEventListener('click', function(e) {
+			if (!settingsMode) return;
+
+			var card = e.target.closest('.card');
+			if (!card) return;
+
+			e.preventDefault();
+			e.stopPropagation();
+
+			var id = card.getAttribute('data-id');
+			var type = card.getAttribute('data-type');
+
+			if (type === 'fav-fs') {
+				removeFavorite(id, 'fs');
+			} else if (type === 'fav-normal') {
+				removeFavorite(id, 'normal');
+			} else if (type === 'cat-fs') {
+				addFavorite(id, 'fs');
+			} else if (type === 'cat-normal') {
+				addFavorite(id, 'normal');
+			}
+
+			render();
+		});
+
+		// イベント: 設定ボタン
+		document.getElementById('settingsBtn').addEventListener('click', function() {
+			settingsMode = !settingsMode;
+			this.classList.toggle('active', settingsMode);
+			document.getElementById('settingsBar').classList.toggle('visible', settingsMode);
+			render();
+		});
+
+		// イベント: 完了ボタン
+		document.getElementById('doneBtn').addEventListener('click', function() {
+			settingsMode = false;
+			document.getElementById('settingsBtn').classList.remove('active');
+			document.getElementById('settingsBar').classList.remove('visible');
+			render();
+		});
+
+		// 初期描画
+		render();
+	})();
+	</script>
+</body>
+</html>
